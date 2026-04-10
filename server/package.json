@@ -4,7 +4,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "injector": "node injector.js",
+    "dev": "nodemon server.js",
+    "dev:injector": "nodemon injector.js",
+    "start:with-injector": "concurrently \"node server.js\" \"node injector.js\""
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -12,6 +15,7 @@
     "ws": "^8.18.3"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "nodemon": "^3.0.1"
   }
 }

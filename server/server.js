@@ -128,4 +128,46 @@ function broadcastToBrowsers(msg) {
 server.listen(PORT, () => {
   console.log(`✅ BMS server listening on http://localhost:${PORT}`);
   console.log("WebSocket endpoint is ws://localhost:" + PORT);
+
+  // Auto-start injector in production or when ENABLE_INJECTOR=true
+  if (process.env.ENABLE_INJECTOR === "true" || process.env.NODE_ENV === "production") {
+    startDataInjector();
+  }
 });
+
+// Start the data injector
+function startDataInjector() {
+  const { spawn } = require("child_process");
+  const path = require("path");
+
+  const injectorPath = path.join(__dirname, "injector.js");
+  const serverUrl = process.env.SERVER_URL || `http://localhost:${PORT}`;
+
+  const injector = spawn("node", [injectorPath], {
+    env: {
+      ...process.env,
+      SERVER_URL: serverUrl,
+      INTERVAL: process.env.INTERVAL || 2000,
+    },
+  });
+
+  injector.stdout.on("data", (data) => {
+    console.log(`[INJECTOR] ${data.toString().trim()}`);
+  });
+
+  injector.stderr.on("data", (data) => {
+    console.error(`[INJECTOR ERROR] ${data.toString().trim()}`);
+  });
+
+  injector.on("close", (code) => {
+    console.warn(`[INJECTOR] Process exited with code ${code}`);
+    // Optionally restart on exit
+    if (process.env.RESTART_INJECTOR !== "false") {
+      console.log("[INJECTOR] Restarting...");
+      setTimeout(startDataInjector, 5000);
+    }
+  });
+
+  console.log("[INJECTOR] 🚀 Data injector started");
+}
+
