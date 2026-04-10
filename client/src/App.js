@@ -244,7 +244,8 @@ export default function App() {
 
   const fetchNow = async () => {
     try {
-      const url = "http://localhost:5000/api/current-data";
+      const apiBaseUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
+      const url = `${apiBaseUrl}/api/current-data`;
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) return;
       const json = await res.json();
@@ -256,11 +257,23 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Get API URL from environment or use localhost
+    const apiBaseUrl = process.env.REACT_APP_API_URL || "http://localhost:5000";
+    
     // Connect to WebSocket server
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const host = window.location.hostname;
-    const port = 5000;
-    const wsUrl = `${protocol}://${host}:${port}`;
+    
+    // Determine WebSocket URL based on environment
+    let wsUrl;
+    if (process.env.REACT_APP_WS_URL) {
+      wsUrl = process.env.REACT_APP_WS_URL;
+    } else if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      wsUrl = `${protocol}://localhost:5000`;
+    } else {
+      // Production: use same host as frontend
+      wsUrl = `${protocol}://${host}`;
+    }
     
     let ws = null;
     let reconnectAttempts = 0;
@@ -269,6 +282,7 @@ export default function App() {
     
     const connectWebSocket = () => {
       try {
+        console.log(`Connecting to WebSocket: ${wsUrl}`);
         ws = new WebSocket(wsUrl);
         
         ws.onopen = () => {
